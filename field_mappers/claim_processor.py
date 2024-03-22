@@ -47,16 +47,18 @@ class FHIRClaimsProcessor(FHIRResourceProcessor):
         """
         mapping = {
                 "patient_id": "patient.reference",
+                "billing_start": "billablePeriod.start",
+                "billing_end": "billablePeriod.end",
+                "amount": "total.value"
         }
         instance_dict = {
                 'origin': self.origin,
         }
         for dest, source in mapping.items():
-            instance_dict[dest] = get_value_at_json_path(source)
-        return instance_dict
+            instance_dict[dest] = get_value_at_json_path(self.data, source)
+        self.data = instance_dict
 
 
     def normalize(self):
-        for record in self.data["contained"]:
-            if "gender" in record:
-                record["gender"] = GenderNormalizer.normalize(record["gender"])
+        if "gender" in self.data:
+            self.data["gender"] = GenderNormalizer.normalize(self.data["gender"])
