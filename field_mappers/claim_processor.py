@@ -1,11 +1,23 @@
 import json
-from field_mappers.base import FHIRResourceProcessor
+from field_mappers.base import FHIRResourceProcessor, get_value_at_json_path
 import logging
+from normalizers.enum_normalizer import GenderNormalizer
 
 LOG = logging.getLogger(__name__)
 
 
+
 class FHIRClaimsProcessor(FHIRResourceProcessor):
+    def validate_dates(self):
+        """
+        Validate date fields
+        """
+        date_fields = ["billablePeriod.start", "billablePeriod.end"]
+        datetime_fields = ["created"]
+        for field in date_fields:
+            self.validate_date_string(self.data, field)
+        for field in datetime_fields:
+            self.validate_datetime_string(self.data, field)
 
     def validate(self):
         """
@@ -19,6 +31,7 @@ class FHIRClaimsProcessor(FHIRResourceProcessor):
         for field in required_fields:
             if field not in self.data:
                 LOG.warning(f"Missing required field: {field}")
+        self.validate_dates()
 
         # patient ID may be missing and come in later in some cases
         if "patient" not in self.data:
@@ -27,38 +40,23 @@ class FHIRClaimsProcessor(FHIRResourceProcessor):
             LOG.warning("Claim ID is missing.")
 
 
-
     def map_values(self):
         """
-        Map values in the claims data to standardized formats or codes as needed.
-
-        This can include mapping diagnosis codes, normalizing provider identifiers, etc.
+        Maps to structured zone table
+        Note: due to time constraints not all fields are included
         """
-        # Example mapping: Shorten patient name to conform to specifications
-        for name in self.data.get("contained", []):
-            if name.get("resourceType") == "Patient":
-                name["name"][0]["text"] = f"{name['name'][0]['given'][0][:10]}, {name['name'][0]['family'][:15]}"
+        mapping = {
+                "patient_id": "patient.reference",
+        }
+        instance_dict = {
+                'origin': self.origin,
+        }
+        for dest, source in mapping.items():
+            instance_dict[dest] = get_value_at_json_path(source)
+        return instance_dict
 
-        # Add more mappings as needed
 
     def normalize(self):
-        """
-        Normalize values such as dates and currencies to ensure consistency.
-
-        This might include converting dates to a standard format, normalizing currency values, etc.
-        """
-        # Example normalization: Ensure date format is YYYY-MM-DD
-        if "billablePeriod" in self.data:
-            self.data["billablePeriod"]["start"] = self._normalize_date(
-                    self.data["billablePeriod"]["start"]
-                    )
-            self.data["billablePeriod"]["end"] = self._normalize_date(self.data["billablePeriod"]["end"])
-
-        # Add more normalizations as needed
-
-    def _normalize_date(self, date_str):
-        """
-        Helper method to normalize date strings to a standard format (e.g., YYYY-MM-DD).
-        """
-        # Implement normalization logic if needed, currently assuming date is already in correct format
-        return date_str
+        for record in self.data["contained"]:
+            if "gender" in record:
+                record["gender"] = GenderNormalizer.normalize(record["gender"])
