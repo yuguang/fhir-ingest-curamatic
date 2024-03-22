@@ -30,14 +30,14 @@ class FHIRClaimsProcessor(FHIRResourceProcessor):
                            'patient', 'provider', 'resourceType', 'status', 'total', 'type', 'use']
         for field in required_fields:
             if field not in self.data:
-                LOG.warning(f"Missing required field: {field}")
+                self.log_warning(f"Missing required field: {field}")
         self.validate_dates()
 
         # patient ID may be missing and come in later in some cases
         if "patient" not in self.data:
             LOG.info("Patient data is missing.")
         elif "id" not in self.data:
-            LOG.warning("Claim ID is missing.")
+            self.log_warning("Claim ID is missing.")
 
 
     def map_values(self):

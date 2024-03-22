@@ -67,6 +67,7 @@ class FHIRResourceProcessor:
         self.ingest_ts = ingest_ts
         self.data = {}
         self.origin = 1
+        self.row_num = 0
 
     def validate(self):
         """
@@ -76,6 +77,9 @@ class FHIRResourceProcessor:
         validating date formats, ensuring identifiers meet expected patterns, etc.
         """
         pass
+
+    def log_warning(self, msg):
+        LOG.warning(f"{msg} at row {self.row_num}")
 
     @staticmethod
     def validate_date_string(record: Dict[str, Any], key: str):
@@ -135,11 +139,12 @@ class FHIRResourceProcessor:
         # Implement normalization logic if needed, currently assuming date is already in correct format
         return date_str
 
-    def process(self, data):
+    def process(self, data, row_num):
         """
         Main method to process the claims data by validating, mapping, and normalizing it.
         """
         self.data = data
+        self.row_num = row_num
         self.validate()
         self.map_values()
         self.normalize()
