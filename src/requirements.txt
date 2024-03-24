@@ -1,0 +1,14 @@
+--extra-index-url https://pypi.cloud.soda.io
+sqlalchemy
+python-dotenv
+dask==2023.7.1
+dask-sql==2023.8.0
+numpy==1.26.4
+pandas==1.5.3
+pytest==8.1.1
+pytest-cov==4.1.0
+soda==1.4.3
+soda-core==3.3.0
+soda-core-pandas-dask==3.3.0
+soda-freshness==0.0.5
+soda-postgres==1.4.3

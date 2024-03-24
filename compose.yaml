@@ -1,0 +1,27 @@
+version: '3.10'
+
+services:
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: structured
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: mypassword
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+  app:
+    image: python:3.10
+    volumes:
+      - ./data:/data
+      - ./src:/src
+    working_dir: /src
+    command: bash -c "pip install -r /src/requirements.txt && sleep 5 && python /src/structured_zone_transformer.py && tail -f /dev/null"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
