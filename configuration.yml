@@ -1,0 +1,8 @@
+data_source structured:
+  type: postgres
+  host: db
+  port: "5432"
+  username: user
+  password: mypassword
+  database: structured
+  schema: public

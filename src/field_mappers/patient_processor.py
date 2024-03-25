@@ -8,21 +8,14 @@ LOG = logging.getLogger(__name__)
 
 
 class FHIRPatientProcessor(FHIRResourceProcessor):
-    def validate_dates(self):
-        """
-        Validate date fields
-        """
-        date_fields = ["birthDate"]
-        datetime_fields = ["meta.lastUpdated"]
-        for field in date_fields:
-            self.validate_date_string(self.data, field)
-        for field in datetime_fields:
-            self.validate_datetime_string(self.data, field)
-        if self.data["meta.lastUpdated"] is not None and self.data["meta.lastUpdated"] > self.ingest_ts:
-            self.log_warning("Invalid value: lastUpdated is in the future")
-
-    def validate(self):
-        pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.date_fields = ["birthDate"]
+        self.datetime_fields = ["meta.lastUpdated"]
+        self.required_fields = [
+                "name",
+                "id"
+        ]
 
 
     def map_values(self):

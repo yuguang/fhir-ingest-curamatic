@@ -1,18 +1,11 @@
-import dask.dataframe as dd
 from soda.scan import Scan
 
 # Create Soda Library Scan object and set a few required properties
 scan = Scan()
 scan.set_scan_definition_name("test")
-scan.set_data_source_name("dask")
-
-# Read a `patients` CSV file with columns 'city', 'population'
-ddf = dd.read_csv('patients.csv')
-
-scan.add_dask_dataframe(dataset_name="patients", dask_df=ddf)
+scan.add_configuration_yaml_file(file_path="/src/configuration.yml")
 
 # Define checks using SodaCL
-
 checks = """
 checks for patients:
     - row_count > 0

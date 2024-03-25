@@ -3,6 +3,7 @@ version: '3.10'
 services:
   db:
     image: postgres:latest
+    container_name: postgres-db
     environment:
       POSTGRES_DB: structured
       POSTGRES_USER: user
@@ -15,6 +16,7 @@ services:
 
   app:
     image: python:3.10
+    container_name: ingest-service
     volumes:
       - ./data:/data
       - ./src:/src

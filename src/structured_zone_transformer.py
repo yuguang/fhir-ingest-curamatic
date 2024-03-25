@@ -2,7 +2,7 @@ import json, csv
 from pandas.io.json import json_normalize
 import pandas as pd
 from datetime import datetime
-from field_mappers.claim_processor import FHIRClaimsProcessor
+from field_mappers.claim_processor import FHIRClaimProcessor
 from field_mappers.patient_processor import FHIRPatientProcessor
 from sqlalchemy import create_engine
 from dotenv import load_dotenv

@@ -7,38 +7,13 @@ LOG = logging.getLogger(__name__)
 
 
 
-class FHIRClaimsProcessor(FHIRResourceProcessor):
-    def validate_dates(self):
-        """
-        Validate date fields
-        """
-        date_fields = ["billablePeriod.start", "billablePeriod.end"]
-        datetime_fields = ["created"]
-        for field in date_fields:
-            self.validate_date_string(self.data, field)
-        for field in datetime_fields:
-            self.validate_datetime_string(self.data, field)
-
-    def validate(self):
-        """
-        Validate the claims data.
-
-        Implement validations such as checking required fields,
-        validating date formats, ensuring identifiers meet expected patterns, etc.
-        """
-        required_fields = ['billablePeriod', 'contained', 'created', 'diagnosis', 'id',
-                           'patient', 'provider', 'resourceType', 'status', 'total', 'type', 'use']
-        for field in required_fields:
-            if field not in self.data:
-                self.log_warning(f"Missing required field: {field}")
-        self.validate_dates()
-
-        # patient ID may be missing and come in later in some cases
-        if "patient" not in self.data:
-            LOG.info("Patient data is missing.")
-        elif "id" not in self.data:
-            self.log_warning("Claim ID is missing.")
-
+class FHIRClaimProcessor(FHIRResourceProcessor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.date_fields = ["billablePeriod.start", "billablePeriod.end"]
+        self.datetime_fields = ["created"]
+        self.required_fields = ['billablePeriod', 'contained', 'created', 'id',
+                           'patient', 'provider', 'resourceType', 'status', 'total']
 
     def map_values(self):
         """

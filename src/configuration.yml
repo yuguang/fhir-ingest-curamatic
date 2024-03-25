@@ -1,0 +1,7 @@
+data_source structured_zone:
+  type: postgres
+  host: db
+  port: "5432"
+  username: user
+  password: mypassword
+  database: structured

@@ -66,5 +66,15 @@ class TestPatientPercentageAboveThreshold(unittest.TestCase):
                                                      )
         self.assertTrue(result)
 
+
+    def test_percent_below_threshold(self):
+        """Test the percent_of_patients_above_threshold function."""
+        # Assuming you've defined or imported percent_of_patients_above_threshold above
+        result = percent_of_patients_above_threshold(['Test Patient ID x', 'Test Patient ID y', 'Nonexistent ID'], 100,
+                                                     self.pg_connection_dict
+                                                     )
+        self.assertFalse(result)
+
+
 if __name__ == "__main__":
     unittest.main()

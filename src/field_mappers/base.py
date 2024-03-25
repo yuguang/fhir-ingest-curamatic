@@ -1,17 +1,20 @@
-import json, re, datetime
+import json, re
+from datetime import datetime
 from typing import Dict, Any
 import logging
 
 LOG = logging.getLogger(__name__)
 
 ISO8601_MATCH = match_iso8601 = re.compile(
-    r'^(-?(?:[1-9][0-9]*)?[0-9]{4})-(1[0-2]|0[1-9])-(3[01]|0[1-9]|[12][0-9])T'
-    r'(2[0-3]|[01][0-9]):([0-5][0-9]):([0-5][0-9])(\.[0-9]+)?'
-    r'(Z|[+-](?:2[0-3]|[01][0-9]):?[0-5][0-9])?$').match
+        r'^(-?(?:[1-9][0-9]*)?[0-9]{4})-(1[0-2]|0[1-9])-(3[01]|0[1-9]|[12][0-9])T'
+        r'(2[0-3]|[01][0-9]):([0-5][0-9]):([0-5][0-9])(\.[0-9]+)?'
+        r'(Z|[+-](?:2[0-3]|[01][0-9]):?[0-5][0-9])?$'
+).match
 
 
 class ValidationError(Exception):
     pass
+
 
 def get_value_at_json_path(json_data, json_path):
     """Returns the value at the given JSON path within the given JSON data.
@@ -55,7 +58,6 @@ def get_value_at_json_path(json_data, json_path):
     return json_data
 
 
-
 class FHIRResourceProcessor:
     def __init__(self, ingest_ts):
         """
@@ -68,6 +70,25 @@ class FHIRResourceProcessor:
         self.data = {}
         self.origin = 1
         self.row_num = 0
+        self.date_fields = []
+        self.datetime_fields = []
+        self.required_fields = []
+
+    def validate_dates(self):
+        """
+        Validate date fields
+        """
+        for field in self.date_fields:
+            self.validate_date_string(self.data, field)
+        for field in self.datetime_fields:
+            self.validate_datetime_string(self.data, field)
+
+    def _nested_field_dne(self, field):
+        """
+        Checks if a nested JSON field does not exist (DNE)
+        """
+        if ("." in field or "[" in field) and not get_value_at_json_path(self.data, field):
+            return False
 
     def validate(self):
         """
@@ -76,7 +97,11 @@ class FHIRResourceProcessor:
         Implement validations such as checking required fields,
         validating date formats, ensuring identifiers meet expected patterns, etc.
         """
-        pass
+        for field in self.required_fields:
+            if field not in self.data or self._nested_field_dne(field):
+                self.log_warning(f"Missing required field: {field}")
+
+        self.validate_dates()
 
     def log_warning(self, msg):
         LOG.warning(f"{msg} at row {self.row_num}")
@@ -86,10 +111,10 @@ class FHIRResourceProcessor:
         """
         Validate date string format (%Y-%m-%d).
         """
-        if not record.get(key):
+        if not get_value_at_json_path(record, key):
             return
         try:
-            date_string = record[key]
+            date_string = get_value_at_json_path(record, key)
             if len(date_string) != 10:
                 raise ValueError()
 
@@ -97,7 +122,7 @@ class FHIRResourceProcessor:
 
         except ValueError:
             LOG.warning(
-                "Values in column '{key}' is not valid date string, should be YYYY-MM-DD".format(key=key)
+                    "Values in column '{key}' is not valid date string, should be YYYY-MM-DD".format(key=key)
             )
 
     @staticmethod
@@ -105,16 +130,15 @@ class FHIRResourceProcessor:
         """
         Validate date string format (ISO8601).
         """
-        if not record.get(key):
+        if not get_value_at_json_path(record, key):
             return
         # noinspection PyBroadException
         try:
-            if ISO8601_MATCH(record[key]) is not None:
+            if ISO8601_MATCH(get_value_at_json_path(record, key)) is not None:
                 return True
         except:
             pass
         LOG.warning("Values in column '{key}' is not valid ISO8601 string".format(key=key))
-
 
     def map_values(self):
         """
