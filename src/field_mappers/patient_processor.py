@@ -32,9 +32,6 @@ class FHIRPatientProcessor(FHIRResourceProcessor):
                 'origin': self.origin,
         }
         for dest, source in mapping.items():
-            value = get_value_at_json_path(self.data, source)
-            if value is None:
-                self.log_warning(f"Missing value for {dest} at {source}")
             instance_dict[dest] = get_value_at_json_path(self.data, source)
         self.data = instance_dict
 

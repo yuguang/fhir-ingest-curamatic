@@ -3,6 +3,7 @@ CREATE DATABASE structured;
 CREATE TABLE claims
 (
     id         INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    claim_id VARCHAR(255) NOT NULL,
     patient_id VARCHAR(255) NOT NULL,
     billing_start DATE NOT NULL,
     billing_end DATE NOT NULL,
@@ -17,6 +18,7 @@ CREATE TABLE claims
 CREATE TABLE claims_history
 (
     id         INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    claim_id VARCHAR(255) NOT NULL,
     patient_id VARCHAR(255) NOT NULL,
     billing_start DATE NOT NULL,
     billing_end DATE NOT NULL,
