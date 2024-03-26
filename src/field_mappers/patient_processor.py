@@ -1,9 +1,9 @@
 import json
 from field_mappers.base import FHIRResourceProcessor, get_value_at_json_path
-import logging
+from common.utils import TransformerLogger
 from normalizers.enum_normalizer import GenderNormalizer
 
-LOG = logging.getLogger(__name__)
+LOG = TransformerLogger(__name__)
 
 
 
@@ -32,6 +32,9 @@ class FHIRPatientProcessor(FHIRResourceProcessor):
                 'origin': self.origin,
         }
         for dest, source in mapping.items():
+            value = get_value_at_json_path(self.data, source)
+            if value is None:
+                self.log_warning(f"Missing value for {dest} at {source}")
             instance_dict[dest] = get_value_at_json_path(self.data, source)
         self.data = instance_dict
 

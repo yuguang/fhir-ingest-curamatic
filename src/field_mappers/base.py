@@ -1,9 +1,9 @@
 import json, re
 from datetime import datetime
 from typing import Dict, Any
-import logging
+from common.utils import TransformerLogger
 
-LOG = logging.getLogger(__name__)
+LOG = TransformerLogger(__name__)
 
 ISO8601_MATCH = match_iso8601 = re.compile(
         r'^(-?(?:[1-9][0-9]*)?[0-9]{4})-(1[0-2]|0[1-9])-(3[01]|0[1-9]|[12][0-9])T'
@@ -70,6 +70,8 @@ class FHIRResourceProcessor:
         self.data = {}
         self.origin = 1
         self.row_num = 0
+        self.total_warnings = 0
+        self.total_rows_processed = 0
         self.date_fields = []
         self.datetime_fields = []
         self.required_fields = []
@@ -104,8 +106,11 @@ class FHIRResourceProcessor:
         self.validate_dates()
 
     def log_warning(self, msg):
+        self.total_warnings += 1
         LOG.warning(f"{msg} at row {self.row_num}")
 
+    def total_warnings_below_threshold(self, threshold):
+        return (self.total_warnings / self.total_rows_processed) < (threshold / 100.0)
     @staticmethod
     def validate_date_string(record: Dict[str, Any], key: str):
         """
@@ -172,4 +177,5 @@ class FHIRResourceProcessor:
         self.validate()
         self.map_values()
         self.normalize()
+        self.total_rows_processed += 1
         return self.data

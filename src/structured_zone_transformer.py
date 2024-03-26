@@ -7,9 +7,9 @@ from field_mappers.patient_processor import FHIRPatientProcessor
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 import os, psycopg2
-import logging
+from common.utils import TransformerLogger
 
-LOG = logging.getLogger(__name__)
+LOG = TransformerLogger(__name__)
 
 
 # Load environment variables from .env file
@@ -71,6 +71,77 @@ pg_connection_dict = {
 }
 
 
+def upsert_claim(claim_details, pg_connection_dict):
+    """
+    Upsert a claim record. If the claim is new or modified, it's inserted/updated in the 'claims' table.
+    Previous versions of modified records are saved to 'claims_history'.
+
+    :param claim_details: Dictionary with claim data.
+    :param pg_connection_dict: Dictionary with PostgreSQL connection parameters.
+    """
+    # Connect to the PostgreSQL database
+    conn = psycopg2.connect(**pg_connection_dict)
+    try:
+        with conn.cursor() as cursor:
+            # Extract claim details
+            claim_id = claim_details['id']
+            patient_id = claim_details['patient_id']
+            billing_start = claim_details['billing_start']
+            billing_end = claim_details['billing_end']
+            provider = claim_details['provider']
+            admitting_diagnosis = claim_details.get('admitting_diagnosis')
+            insurance = claim_details['insurance']
+            status = claim_details['status']
+            amount = claim_details['amount']
+
+            # Check for an existing claim for the patient within the same billing period
+            cursor.execute("""
+                SELECT id, insert_ts FROM claims WHERE id = %s
+            """, (claim_id,)
+            )
+            existing_claim = cursor.fetchone()
+
+            now = datetime.now()
+
+            if existing_claim:
+                # If existing, move current record to history before updating
+                claim_id_db, insert_ts = existing_claim
+                cursor.execute("""
+                    INSERT INTO claims_history (patient_id, billing_start, billing_end, provider,
+                                                admitting_diagnosis, insurance, status, amount, insert_ts, change_ts)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (patient_id, billing_start, billing_end, provider,
+                                                admitting_diagnosis, insurance, status, amount, insert_ts, now)
+                               )
+
+                # Update existing claim record
+                cursor.execute("""
+                    UPDATE claims
+                    SET provider = %s, admitting_diagnosis = %s, insurance = %s, status = %s,
+                        amount = %s, insert_ts = %s
+                    WHERE patient_id = %s AND billing_start = %s AND billing_end = %s
+                """, (
+                provider, admitting_diagnosis, insurance, status, amount, now, patient_id, billing_start, billing_end)
+                               )
+            else:
+                # Insert new claim record
+                cursor.execute("""
+                    INSERT INTO claims (patient_id, billing_start, billing_end, provider, admitting_diagnosis,
+                                        insurance, status, amount, insert_ts)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (patient_id, billing_start, billing_end, provider, admitting_diagnosis,
+                      insurance, status, amount, now)
+                               )
+
+            # Commit the transaction
+            conn.commit()
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
 def upsert_patient(patient_id, first_name, last_name, origin):
     """Insert or update a patient's record and log changes to the history table."""
     try:
@@ -107,6 +178,7 @@ def upsert_patient(patient_id, first_name, last_name, origin):
 
     except Exception as e:
         print(f"An error occurred: {e}")
+        conn.rollback()
     finally:
         if 'cursor' in locals():
             cursor.close()
@@ -141,18 +213,17 @@ def percent_of_patients_above_threshold(patient_ids, threshold, connection_dict)
 
 
 if __name__ == "__main__":
-    # process claims
-    # ndjson_path = '/data/Claim.ndjson'
-    # fhir_data = load_fhir_data(ndjson_path)
-    # LOG.info(f"Loaded {len(fhir_data)} FHIR records.")
-    #
-    # ingest_time = datetime.now()
-    # output = []
-    # for row_num, row in enumerate(fhir_data):
-    #     processor = FHIRClaimsProcessor(ingest_time)
-    #     processed_data = processor.process(row, row_num)
-    #     output.append(processed_data)
-    # write_to_db("claims", output)
+    ndjson_path = '/data/Claim.ndjson'
+    fhir_data = load_fhir_data(ndjson_path)
+    LOG.info(f"Loaded {len(fhir_data)} FHIR records.")
+
+    ingest_time = datetime.now()
+    output = []
+    processor = FHIRClaimProcessor(ingest_time)
+    for row_num, row in enumerate(fhir_data):
+        processed_data = processor.process(row, row_num)
+        output.append(processed_data)
+    write_to_file("claims.csv", output)
 
     # process patients
     ndjson_path = '/data/Patient.ndjson'
@@ -162,12 +233,15 @@ if __name__ == "__main__":
     ingest_time = datetime.now()
     output = []
     patient_ids = []
+    processor = FHIRPatientProcessor(ingest_time)
     for row_num, row in enumerate(fhir_data):
-        processor = FHIRPatientProcessor(ingest_time)
         processed_data = processor.process(row, row_num)
         patient_ids.append(processed_data['patient_id'])
         output.append(processed_data)
 
-    if percent_of_patients_above_threshold(patient_ids, threshold=20, connection_dict=pg_connection_dict):
+    # checks that percent of patients seen before in the file being ingested is above 20% and the percent of warnings
+    # for records being ingested is less than 5% of total record count
+    if percent_of_patients_above_threshold(patient_ids, threshold=20, connection_dict=pg_connection_dict) and \
+        processor.total_warnings_below_threshold(5):
         for processed_data in output:
             upsert_patient(**processed_data)

@@ -1,8 +1,8 @@
 import re
-import logging
+from common.utils import TransformerLogger
 from abc import ABC, abstractmethod
 
-LOG = logging.getLogger(__name__)
+LOG = TransformerLogger(__name__)
 
 class EnumNormalizer(ABC):
     @property
