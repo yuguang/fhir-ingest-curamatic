@@ -23,6 +23,7 @@ docker compose up
 docker ps -a
 docker logs --follow postgres-db
 ```
+Check that the Postgres database `structured` is initialized. Otherwise, manually run the script in `/docker-entrypoint-initdb.d/init.sql`.
 3. Run the first step in the ingestion process to process the data from the raw zone using the `structured_zone_transformer`:
 ```
 docker exec ingest-service python /src/structured_zone_transformer.py
