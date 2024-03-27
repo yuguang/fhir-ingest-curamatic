@@ -7,6 +7,7 @@ DAGs for Airflow 1.10.x. The soliddags package and tests are in https://github.c
 Run the `setup-pyenv.sh` script to set up your local dev environment
 To execute tests locally, run the following commands (in the Python environment):
 ```
+pyenv activate "curamatic-fhir-ingest"
 PYTHONPATH=./src pytest
 ```
 A couple of integration tests require the database to be up and running. The database can be started with the first two 
