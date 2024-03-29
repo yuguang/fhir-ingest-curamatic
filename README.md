@@ -4,7 +4,7 @@
 
 Run the `setup-pyenv.sh` script to set up your local dev environment. Activate the environment by running:
 ```
-pyenv activate "curamatic-fhir-ingest"
+pyenv activate "fhir-ingest"
 ```
 To execute tests locally, run the following commands from the project top level directory (in the Python environment):
 ```
