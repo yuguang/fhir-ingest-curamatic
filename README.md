@@ -1,6 +1,4 @@
-# Curamatic system design challenge
-
-DAGs for Airflow 1.10.x. The soliddags package and tests are in https://github.com/LarkTechnologies/airflow-soliddags.
+# System design challenge
 
 ### Environment setup
 
