@@ -2,7 +2,9 @@
 
 ### Environment setup
 
-Run the `setup-pyenv.sh` script to set up your local dev environment. Activate the environment by running:
+If pyenv and pyenv-virtual env is not installed on your local environment, follow this [installation guide](https://medium.com/@adocquin/mastering-python-virtual-environments-with-pyenv-and-pyenv-virtualenv-c4e017c0b173#e871).
+You can verify that both are installed by running `pyenv virtualenvs` and checking that the output does not contain errors. 
+After that, run the `setup-pyenv.sh` script to set up your local dev environment. Activate the environment by running:
 ```
 pyenv activate "fhir-ingest"
 ```
