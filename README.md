@@ -32,7 +32,8 @@ This runs validations on each of the JSON entries, checking for required fields.
 To execute tests in the docker containers, run the following commands after running the the first two
 steps of the instructions in the "Ingesting files" section:
 ```
-./execute-pytest.sh
+docker exec -it ingest-service bash
+./tests/execute-pytest.sh
 ```
 A couple of integration tests require the database to be up and running with Docker compose.
 
