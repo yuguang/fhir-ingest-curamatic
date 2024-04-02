@@ -19,3 +19,13 @@ def test_map_values_with_null_patient_reference(processor):
 
     assert processor.data[
                'patient_id'] is None, "Expected 'patient_id' to be None when 'patient.reference' is not provided"
+
+def test_gender_normalization(processor):
+    processor.data = {
+            "gender": "M"
+    }
+
+    processor.normalize()
+
+    assert processor.data[
+               'gender'] is 'Male'
