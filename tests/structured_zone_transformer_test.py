@@ -39,7 +39,6 @@ def create_test_tables(conn):
 class TestPatientPercentageThreshold(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        pg_connection_dict["host"] = "localhost"
         cls.pg_connection_dict = pg_connection_dict
         cls.conn = psycopg2.connect(**pg_connection_dict)
 
@@ -82,7 +81,6 @@ class TestPatientPercentageThreshold(unittest.TestCase):
 class TestPatientPercentageNoRecords(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        pg_connection_dict["host"] = "localhost"
         cls.pg_connection_dict = pg_connection_dict
         cls.conn = psycopg2.connect(**pg_connection_dict)
 

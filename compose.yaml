@@ -20,6 +20,7 @@ services:
     volumes:
       - ./data:/data
       - ./src:/src
+      - ./tests:/src/tests
     working_dir: /src
     command: bash -c "pip install -r /src/requirements.txt && tail -f /dev/null"
     depends_on:

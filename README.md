@@ -8,12 +8,6 @@ After that, run the `setup-pyenv.sh` script to set up your local dev environment
 ```
 pyenv activate "fhir-ingest"
 ```
-To execute tests locally, run the following commands from the project top level directory (in the Python environment):
-```
-PYTHONPATH=./src pytest
-```
-A couple of integration tests require the database to be up and running. The database can be started with the first two 
-steps of the instructions in the "Ingesting files" section. 
 
 ### Ingesting files
 
@@ -32,7 +26,30 @@ If the Postgres database `structured` is not initialized, manually run the scrip
 ```
 docker exec ingest-service python /src/structured_zone_transformer.py
 ```
-This runs validations on each of the JSON entries, checking for required fields. It also handles each of these cases:
+This runs validations on each of the JSON entries, checking for required fields. 
+
+### Executing tests in docker
+To execute tests in the docker containers, run the following commands after running the the first two
+steps of the instructions in the "Ingesting files" section:
+```
+./execute-pytest.sh
+```
+A couple of integration tests require the database to be up and running with Docker compose.
+
+### Architecture and design
+This implementation follows a simplified version of the Databricks medallion architecture, where
+1. The raw data is kept in CSV files for the "Bronze" zone. On a production environment, these would stored in S3 prefixes with the date of the file 
+2. The patient and claims data is normalized, mapped, and validated and stored in "Silver" zone tables.
+3. The consumer zone transformer, which loads data from the "Silver" (structured) zone tables, consolidates historical data and removes data that does not conform to business definitions. 
+For example, it ensures claims written to the data warehouse have patient ID fields populated. 
+#### Structured zone tables
+The table structures are defined in init.sql. The `patients` and `claims` tables keep track of the current claims and patients. 
+The `patients_history` and `claims_history` tables keep track of the history of updates to claims and patients. Different
+versions of the data is tracked across time in order to be resilient to changes in the business environment. The historical 
+data in these tables facilitate reprocessing when business logic changes. 
+
+#### Use cases supported and implemented
+The current ingestion code handles each of these cases:
 - Update the schema of the different files without telling us, changing the names of columns
 - Send a completely different group of patients in the Patient.ndjson file
 - Include duplicate records. Assume that occurrence in the file indicates the order in which they are updated, i.e lower in the file = more recent.
@@ -56,16 +73,15 @@ current tables, and the consumer zone transformer would load the data into the w
 - if the file contains more than the percentage of allowed validation errors, it is recommended to check with the hospital
 where the file is being produced to resolve the data quality issue. This check is performed with `FHIRResourceProcessor.total_warnings_below_threshold`
 
-### Structured zone tables
-The table structures are defined in init.sql. The `patients` and `claims` tables keep track of the current claims and patients. 
-The `patients_history` and `claims_history` tables keep track of the history of updates to claims and patients. 
-
-
-### Out of scope
+#### Out of scope
 This design does not aim to implement the full ETL pipeline, which requires Airflow and EMR to run. However, to scale up
 to data set sizes that are 10,000 times larger, the `validate`, `map_values`, and `normalize` methods can each be implemented
 in Spark, and the upsert methods can be modified to write files in parallel to S3. The current upsert methods also do not
 support routing to different databases determined by the `origin` field, which is designed to support multi-tenancy. 
+
+The implementation also does not include the consumer zone transformer to build the data warehouse, as the business uses
+cases need to be clarified before implementation. However, the consumer zone would contain tables for building dashboards
+and reports. 
 
 #### Soda validations
 API keys are required to run validations (https://docs.soda.io/soda-library/install.html#configure-soda). Once they are configured, 
